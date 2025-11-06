@@ -1,0 +1,55 @@
+*{
+    box-sizing: border-box;
+    font-family: Arial;
+}
+
+body{
+    background-color: lightblue;
+}
+
+#canvas{
+    border: 3px solid black;
+    border-radius: 10px;
+    display: block;
+
+    width: 70vw;
+    height: 35vw;
+}
+
+#canvas_div{
+    float: left;
+    margin: 2vw;
+}
+
+#terrain_div{
+    border: 3px solid black;
+    border-radius: 10px;
+    height: 5vw;
+    width: 92vw;
+    margin-left: 2vw;
+    padding: 10px;
+}
+
+#weather_and_stat_div{
+    display: inline-block;
+    height: 35vw;
+    width: 20vw;
+    margin-top: 2vw;
+}
+
+#weather_div{
+    border: 3px solid black;
+    border-radius: 10px;
+    height: 15vw;
+    width: 20vw;
+    margin-bottom: 5vw;
+    padding: 10px;
+}
+
+#stat_div{
+    border: 3px solid black;
+    border-radius: 10px;
+    height: 15vw;
+    width: 20vw;
+    padding: 10px;
+}

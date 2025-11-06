@@ -7,5 +7,4 @@ export const drawLeaf= true,
              drawRoot= true,
              clearCanvas= true;
 
-
 export const drawRainDropCollision= false;

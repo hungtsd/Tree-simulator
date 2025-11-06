@@ -280,11 +280,3 @@ document.getElementById('rain_button').onclick= ()=>{
         rainInterval= null;
     }
 }
-
-
-document.getElementById('test_button3').onclick= ()=>{
-    for (const tree of TreeList){
-        for (const node of tree.nodeList)
-            node.d_angle_speed= 5;
-    }
-}

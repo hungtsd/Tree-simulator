@@ -3,8 +3,9 @@ export const canvasWidth= 2000,
              FPSCap= 60,
              DT= Math.floor(1000/FPSCap);
 
-export const drawLeaf= false,
-             drawRoot= false,
+export const drawLeaf= true,
+             drawRoot= true,
              clearCanvas= true;
+
 
 export const drawRainDropCollision= false;

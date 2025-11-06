@@ -21,7 +21,7 @@ body{
     margin: 2vw;
 }
 
-#terrain_div{
+#tree_div{
     border: 3px solid black;
     border-radius: 10px;
     height: 5vw;
@@ -43,7 +43,7 @@ body{
     height: 15vw;
     width: 20vw;
     margin-bottom: 5vw;
-    padding: 10px;
+    padding: 5%;
 }
 
 #stat_div{
@@ -52,4 +52,52 @@ body{
     height: 15vw;
     width: 20vw;
     padding: 10px;
+}
+
+#tree_div > button{
+    height: 100%;
+    width: 15%;
+    border: none;
+    border-radius: 10px;
+    background-color: brown;
+}
+
+#weather_div > div{
+    height: 45%;
+    width: 100%;
+    margin-bottom: 5%;
+}
+
+#weather_div > div > button{
+    height: 100%;
+    width: 30%;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#weather_div > div > div{
+    display: inline-block;
+    width: 65%;
+    height: 100%;
+    vertical-align: middle;
+}
+
+#weather_div > div > div > div{
+    display: flex;
+    width: 100%;
+    height: 50%;
+    align-items: center;
+}
+
+#weather_div > div > div > div > input{
+    flex: 1;
+    min-width: 0;
+    text-align: right;
+    background-color: transparent;
+    border: none;
+    border-bottom: 2px solid black;
+}
+
+#weather_div > div > div > p{
+    margin: 0px;
 }

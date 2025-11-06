@@ -280,3 +280,4 @@ document.getElementById('rain_button').onclick= ()=>{
         rainInterval= null;
     }
 }
+

@@ -64,7 +64,7 @@ export const ThirdTree={
 
         MaxChild: 2,
         ChildChance: -0.30,
-        ChildChance_PerNode: 0.2,
+        ChildChance_PerNode: 0.3,
         StopChance: -0.70,
         StopChance_PerNode: 0.23
     }

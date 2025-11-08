@@ -1,5 +1,7 @@
-export const canvasWidth= 2000,
-             canvasHeight= 1000,
+export const canvasMainWidth= 2000,
+             canvasMainHeight= 1000,
+             canvasStatWidth= 1200,
+             canvasStatHeight= 900,
              FPSCap= 60,
              DT= Math.floor(1000/FPSCap);
 

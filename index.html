@@ -12,37 +12,37 @@
             <button id="test_button3">Cây 3</button>
         </div>
 
-        <div id="canvas_div">
-            <canvas id="canvas"></canvas>
+        <div id="canvas_main_div">
+            <canvas id="canvas_main"></canvas>
         </div>
 
         <div id="weather_and_stat_div">
             <div id="weather_div">
                 <div id="rain_div">
-                    <button id="rain_button">Mưa</button>
+                    <button id="rain_button">Bật mưa</button>
                     <div id="rain_input_div">
                         <div id="rain_input_inner_div">
-                            <input id="rain_intensity">
+                            <input id="rain_intensity_input" maxlength="3" placeholder="1" disabled>
                             <p>mm</p>
                         </div>
-                        <p>a</p>
+                        <p id="rain_intensity_response">a</p>
                     </div>
                 </div>
 
                 <div id="wind_div">
-                    <button id="wind_button">Gió</button>
+                    <button id="wind_button">Bật gió</button>
                     <div id="wind_input_div">
                         <div id="wind_input_inner_div">
-                            <input id="wind_intensity">
+                            <input id="wind_intensity_input" maxlength="3" placeholder="1" disabled>
                             <p>km/h</p>
                         </div>
-                        <p>a</p>
+                        <p id="wind_intensity_response">a</p>
                     </div>
                 </div>
             </div>
 
-            <div id="stat_div">
-                
+            <div id="canvas_stat_div">
+                <canvas id="canvas_stat"></canvas>
             </div>
         </div>
     </body>

@@ -1,24 +1,25 @@
 *{
     box-sizing: border-box;
-    font-family: Arial;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 body{
     background-color: lightblue;
 }
 
-#canvas{
-    border: 3px solid black;
-    border-radius: 10px;
-    display: block;
+#canvas_main_div{
+    margin: 2vw;
+    float: left;
 
     width: 70vw;
     height: 35vw;
 }
 
-#canvas_div{
-    float: left;
-    margin: 2vw;
+#canvas_main{
+    width: 100%;
+    height: 100%;
+    border: 3px solid black;
+    border-radius: 10px;
 }
 
 #tree_div{
@@ -46,12 +47,16 @@ body{
     padding: 5%;
 }
 
-#stat_div{
-    border: 3px solid black;
-    border-radius: 10px;
+#canvas_stat_div{
     height: 15vw;
     width: 20vw;
-    padding: 10px;
+}
+
+#canvas_stat{
+    height: 100%;
+    width: 100%;
+    border: 3px solid black;
+    border-radius: 10px;
 }
 
 #tree_div > button{
@@ -98,6 +103,15 @@ body{
     border-bottom: 2px solid black;
 }
 
+#weather_div > div > div > div > input:focus{
+    outline: none;
+}
+
+#weather_div > div > div > div > input:disabled{
+    opacity: 0.5;
+}
+
 #weather_div > div > div > p{
     margin: 0px;
+    text-align: center;
 }

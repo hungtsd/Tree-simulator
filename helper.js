@@ -70,3 +70,10 @@ export function collision_box(box1, box2){
 export function to_rad(angle){
     return angle/1800*Math.PI;
 }
+
+export function is_a_number(string){
+    for (let id=0; id<string.length; id++)
+        if (string.charCodeAt(id)<48 || string.charCodeAt(id)>57)
+            return false;
+    return true;
+}

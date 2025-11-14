@@ -77,3 +77,34 @@ export function is_a_number(string){
             return false;
     return true;
 }
+
+//nhớ vector với queue của C++ ;_;
+export class queue{
+    constructor(...val){
+        this.head= [];
+        this.tail= val;
+    }
+
+    push(val){
+        this.tail.push(val);
+    }
+
+    pop(){
+        if (this.head.length===0){
+            if (this.tail.length===0){
+                console.warn('Popping an empty queue');
+                return null;
+            }
+            this.head.length= this.tail.length;
+            for (let id=0; id<this.tail.length; id++)
+                this.head[id]= this.tail[this.tail.length-id-1];
+            this.tail.length= 0;
+        }
+
+        return this.head.pop();
+    }
+
+    length(){
+        return this.head.length+this.tail.length;
+    }
+}

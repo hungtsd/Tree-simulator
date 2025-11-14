@@ -69,3 +69,27 @@ export const ThirdTree={
         StopChance_PerNode: 0.23
     }
 }
+
+export const FourthTree={
+    MinNodeCount: 10,
+    MaxNodeCount: 20,
+    NodeData: {
+        Diameter: 7,
+        MinLeafRadius: 10,
+        MaxLeafRadius: 20,
+        BranchCol: 'green',
+        LeafCol: 'green',
+        MinLength: 20,
+        MaxLength: 25,
+
+        FirstChildMaxAngle: 10,
+        ChildMinAngle: 0,
+        ChildMaxAngle: 0,
+
+        MaxChild: 1,
+        ChildChance: 0,
+        ChildChance_PerNode: 0,
+        StopChance: 0,
+        StopChance_PerNode: 0
+    }
+}

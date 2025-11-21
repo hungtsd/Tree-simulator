@@ -1,3 +1,7 @@
+:root{
+    --main-background-color: lightblue;
+}
+
 *{
     box-sizing: border-box;
     font-family: Arial, Helvetica, sans-serif;
@@ -5,6 +9,24 @@
 
 body{
     background-color: lightblue;
+}
+
+button{
+    transition: filter 200ms ease;
+    cursor: pointer;
+}
+
+input{
+    transition: border-bottom 200ms ease, filter 200ms ease, opacity 200ms ease;
+    cursor: pointer;
+}
+
+button:hover{
+    filter: brightness(0.75);
+}
+
+input:focus{
+    filter: brightness(0.9);
 }
 
 #canvas_main_div{
@@ -15,7 +37,7 @@ body{
     height: 35vw;
 }
 
-#canvas_main{
+#canvas_main, #canvas_stat{
     width: 100%;
     height: 100%;
     border: 3px solid black;
@@ -28,7 +50,11 @@ body{
     height: 5vw;
     width: 92vw;
     margin-left: 2vw;
-    padding: 10px;
+    padding: 1vw;
+
+    display: flex;
+    align-items: center;
+    gap: 1vw;
 }
 
 #weather_and_stat_div{
@@ -52,66 +78,65 @@ body{
     width: 20vw;
 }
 
-#canvas_stat{
-    height: 100%;
-    width: 100%;
-    border: 3px solid black;
-    border-radius: 10px;
-}
-
 #tree_div > button{
-    height: 100%;
-    width: 15%;
+    height: 3vw;
+    width: 8vw;
     border: none;
     border-radius: 10px;
     background-color: brown;
+    font-size: 1.2vw;
 }
 
-#weather_div > div{
+#rain_div, #wind_div{
     height: 45%;
     width: 100%;
     margin-bottom: 5%;
 }
 
-#weather_div > div > button{
+#rain_button, #wind_button{
     height: 100%;
     width: 30%;
     display: inline-block;
     vertical-align: middle;
+    font-size: 1.5vw;
 }
 
-#weather_div > div > div{
+#rain_input_div, #wind_input_div{
     display: inline-block;
     width: 65%;
     height: 100%;
     vertical-align: middle;
+
+    font-size: 1.2vw;
 }
 
-#weather_div > div > div > div{
+#rain_input_inner_div, #wind_input_inner_div{
     display: flex;
     width: 100%;
     height: 50%;
     align-items: center;
 }
 
-#weather_div > div > div > div > input{
+#rain_intensity_input, #wind_intensity_input{
     flex: 1;
     min-width: 0;
     text-align: right;
-    background-color: transparent;
     border: none;
+    background-color: var(--main-background-color);
     border-bottom: 2px solid black;
+
+    font-size: 1.2vw;
 }
 
-#weather_div > div > div > div > input:focus{
+#rain_intensity_input:focus, #wind_intensity_input:focus{
     outline: none;
 }
 
-#weather_div > div > div > div > input:disabled{
+#rain_intensity_input:disabled, #wind_intensity_input:disabled{
     opacity: 0.5;
 }
 
-#weather_div > div > div > p{
+#rain_intensity_response, #wind_intensity_response{
     margin: 0px;
     text-align: center;
 }

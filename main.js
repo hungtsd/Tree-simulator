@@ -1,5 +1,6 @@
 console.log('JS file loaded!');
 import * as Data from './data.js';
+import * as LevelData from './level_data.js';
 import * as Config from './config.js';
 import * as Helper from './helper.js';
 import * as Draw from './draw.js';
@@ -39,6 +40,8 @@ class TreeNode{
         this.parent= parent;
         this.child= [];
         nodeList.push(this);
+
+        this.waterAmount= 0;
     }
 
     async grow(nodeList, leafList, countminimum, countLimit, ChildChance=this.data.ChildChance, StopChance=this.data.StopChance){
@@ -74,6 +77,10 @@ class TreeNode{
         this.abs_angle= this.parent.abs_angle + this.rel_angle + this.d_angle;
         this.x= this.parent.x + Math.round(this.length*Math.cos(Helper.to_rad(this.abs_angle)));
         this.y= this.parent.y - Math.round(this.length*Math.sin(Helper.to_rad(this.abs_angle)));
+
+        let _waterFlow= Math.ceil(this.waterAmount/10);
+        this.waterAmount-= _waterFlow;
+        this.parent.waterAmount+= _waterFlow;
     }
 
     draw_branch(){
@@ -95,9 +102,9 @@ let TreeList=[], RainDropList=[], AirMoleculeList= [];
 let _temp_rain_output= 0;
 
 class Tree{
-    constructor(x,y,data){
+    constructor(x,data){
         this.x= x;
-        this.y= y;
+        this.y= Config.terrainGet(x);
 
         this.abs_angle=900;
 
@@ -108,10 +115,11 @@ class Tree{
         this.root.grow(this.nodeList, this.leafList, this.data.MinNodeCount, this.data.MaxNodeCount);
 
         this.boundingBox= null;
-        this.raindropCount= 0;
         this.update();
 
         TreeList.push(this);
+
+        this.waterAmount= 0;
     }
 
     update(){
@@ -120,12 +128,6 @@ class Tree{
             node.update();
 
         this.boundingBox= Helper.get_boundingBox(...this.nodeList);
-
-        if (this.raindropCount>0){
-            let _raindrop_loss= Math.ceil(this.raindropCount/10);
-            _temp_rain_output+= _raindrop_loss;
-            this.raindropCount-= _raindrop_loss;
-        }
     }
 
     draw_branch(){
@@ -135,7 +137,7 @@ class Tree{
         if (!Config.drawRoot)
             return;
         for (let offSet= -Math.ceil(this.data.NodeData.Diameter/2); offSet<=this.data.NodeData.Diameter/2; offSet+=this.data.NodeData.Diameter)
-            Draw.line(ctx_main,this.x+offSet, this.y+10, this.x, this.y-10, this.data.NodeData.BranchCol, this.data.NodeData.Diameter);
+            Draw.line(ctx_main,this.x+offSet, this.y+10, this.x, this.y-20, this.data.NodeData.BranchCol, this.data.NodeData.Diameter);
     }
 
     draw_leaf(){
@@ -145,11 +147,13 @@ class Tree{
 }
 
 class RainDrop{
-    constructor(x, y, sx, sy){
+    constructor(x, y, sx, sy, vol){
         this.x= x;
         this.y= y;
         this.sx= sx;
         this.sy= sy;
+        this.force= Math.ceil(vol/2);
+        this.thickness= Math.ceil(vol/15);
         this.exist= true;
 
         RainDropList.push(this);
@@ -161,7 +165,7 @@ class RainDrop{
         this.x+= this.sx;
         this.y+= this.sy;
 
-        if (_lastCord.y>1000){
+        if (_lastCord.y>Config.terrainGet(this.x)+15){
             this.exist= false;
             _temp_rain_output++;
             return;
@@ -178,9 +182,9 @@ class RainDrop{
                 if (node.parent===null) continue;
                 if (Helper.collision_line(_lastCord, _cord, node, node.parent)){
                     this.exist= false;
-                    node.d_angle_speed-=5*Helper.get_direction(node, node.parent, _lastCord);
+                    node.d_angle_speed-=this.force*Helper.get_direction(node, node.parent, _lastCord);
 
-                    tree.raindropCount++;
+                    node.waterAmount++;
                     
                     if (Config.drawRainDropCollision)
                         Draw.circle(ctx_main,this.x, this.y, 15, 'red');
@@ -194,16 +198,16 @@ class RainDrop{
     }
 
     draw(){
-        Draw.line(ctx_main,this.x-this.sx, this.y-this.sy, this.x, this.y, 'blue', 1);
+        Draw.line(ctx_main,this.x-this.sx, this.y-this.sy, this.x, this.y, 'blue', this.thickness);
     }
 }
 
 class AirMolecule{
-    constructor(x, y, sx, sy){
+    constructor(x, py, sx){
         this.x= x;
-        this.y= y;
+        this.py= py;
+        this.y= Math.round(Config.terrainGet(this.x)*this.py);
         this.sx= sx;
-        this.sy= sy;
         this.exist= true;
 
         AirMoleculeList.push(this);
@@ -213,9 +217,9 @@ class AirMolecule{
         let _lastCord= {x:this.x, y:this.y};
 
         this.x+= this.sx;
-        this.y+= this.sy;
+        this.y= Math.round(Config.terrainGet(this.x)*this.py);
 
-        if ((Math.abs(this.sx)<1 && Math.abs(this.sy)<1 ) || this.x<0){
+        if (Math.abs(this.sx)<1 || this.x<0){
             this.exist= false;
             return;
         }
@@ -250,14 +254,14 @@ document.getElementById('test_button').onclick= ()=>{
     TreeList.length= 0;
 
     for (let x= 100; x<canvas_main.width-50; x+=100)
-        new Tree(x, 900, Data.DefaultData);
+        new Tree(x, Data.DefaultData);
 }
 
 document.getElementById('test_button2').onclick= ()=>{
     TreeList.length= 0;
 
     for (let x= 100; x<canvas_main.width-50; x+=100)
-        new Tree(x, 900, Data.SecondTree);
+        new Tree(x, Data.SecondTree);
 }
 
 
@@ -265,20 +269,27 @@ document.getElementById('test_button3').onclick= ()=>{
     TreeList.length= 0;
 
     for (let x= 100; x<canvas_main.width-50; x+=100)
-        new Tree(x, 900, Data.FourthTree);
+        new Tree(x, Data.FourthTree);
 }
 
-function validate_input(input, minVal, currVal){
-    let inputVal= input.value;
-    if (inputVal==='') inputVal= String(minVal);
-    if (!(Helper.is_a_number(inputVal) && Number(inputVal)>=minVal)){
+function validate_input(input, minVal, currVal, level_data, responseElement){
+    let _inputVal= input.value;
+    if (_inputVal==='') _inputVal= String(minVal);
+    if (!(Helper.is_a_number(_inputVal) && Number(_inputVal)>=minVal)){
         input.style.borderBottomColor= 'red';
         return currVal;
     }
     input.style.borderBottomColor= 'lime';
 
-    console.log(inputVal);
-    return Number(inputVal);
+    _inputVal= Number(_inputVal);
+    for (const _data of level_data){
+        if (_inputVal>_data.MaxLevel) continue;
+        responseElement.textContent= _data.Text;
+        responseElement.style.color= _data.Color;
+        break;
+    }
+
+    return _inputVal;
 }
 
 let rain_enabled= false, wind_enabled= false, rain_intensity= 1, wind_intensity= 0, wind_speed= 0;
@@ -288,17 +299,19 @@ rain_activation_button.onclick= ()=>{
         rain_intensity_input.disabled= true;
         rain_activation_button.textContent= 'Bật mưa';
         rain_intensity= 0;
+        rain_intensity_response.textContent= '---';
+        rain_intensity_response.style.color= 'black';
     }
     else{
         rain_enabled= true;
         rain_intensity_input.disabled= false;
         rain_activation_button.textContent= 'Tắt mưa';
-        rain_intensity= validate_input(rain_intensity_input, 1, rain_intensity);
+        rain_intensity= validate_input(rain_intensity_input, 1, rain_intensity, LevelData.RainData, rain_intensity_response);
     }
 }
 
 rain_intensity_input.addEventListener('input', ()=>{
-    rain_intensity= validate_input(rain_intensity_input, 1, rain_intensity);
+    rain_intensity= validate_input(rain_intensity_input, 1, rain_intensity, LevelData.RainData, rain_intensity_response);
 });
 
 wind_activation_button.onclick= ()=>{
@@ -308,18 +321,20 @@ wind_activation_button.onclick= ()=>{
         wind_activation_button.textContent= 'Bật gió';
         wind_intensity= 0;
         wind_speed= 0;
+        wind_intensity_response.textContent= '---';
+        wind_intensity_response.style.color= 'black';
     }
     else{
         wind_enabled= true;
         wind_intensity_input.disabled= false;
         wind_activation_button.textContent= 'Tắt gió';
-        wind_intensity= validate_input(wind_intensity_input, 5, wind_intensity);
+        wind_intensity= validate_input(wind_intensity_input, 5, wind_intensity, LevelData.WindData, wind_intensity_response);
         wind_speed= Math.max(Math.ceil(wind_intensity*28/108), 1);
     }
 }
 
 wind_intensity_input.addEventListener('input', ()=>{
-    wind_intensity= validate_input(wind_intensity_input, 5, wind_intensity);
+    wind_intensity= validate_input(wind_intensity_input, 5, wind_intensity, LevelData.WindData, wind_intensity_response);
     wind_speed= Math.max(Math.ceil(wind_intensity*28/108), 1);
 });
 
@@ -389,12 +404,13 @@ class statDisplay{
     }
 }
 
-async function run(){
-    let _raindrop_count= 0, _airmolecule_count= 0;;
-    let _displayUpdate_counter= 0;
+let objCount_display= new statDisplay(20,60,60,'Object count: ',' object', new predictVal);
+let rainOutput_display= new statDisplay(20,120,60,'Rain ouput: ','', new avgVal, 2);
+let fps_display= new statDisplay(20,180,60,'',' FPS', new predictVal(0.1, 60), 1);
+let frameCount= 0;
 
-    let _objCount_display= new statDisplay(20,60,60,'Object count: ',' object', new predictVal);
-    let _rainOutput_display= new statDisplay(20,120,60,'Rain ouput: ','', new avgVal, 2);
+async function run(){
+    let _raindrop_count= 0, _airmolecule_count= 0;
 
     while (true){
         let _timeStart= Date.now();
@@ -404,9 +420,10 @@ async function run(){
         Draw.clear_canvas(ctx_stat, Config.canvasStatHeight, Config.canvasStatWidth);
 
         if (rain_enabled){
-            _raindrop_count+= rain_intensity/100;
+            _raindrop_count+= Math.min(rain_intensity/10,10);
+            let _vol= Math.ceil(rain_intensity/10), _speed= 15+Math.floor(_vol/10);
             while (_raindrop_count>=1){
-                new RainDrop(Helper.randint(0,Config.canvasMainWidth), 0, -wind_speed, 30);
+                new RainDrop(Helper.randint(-100,Config.canvasMainWidth+100), 0, -wind_speed, _speed, _vol);
                 _raindrop_count--;
             }
         }
@@ -414,7 +431,7 @@ async function run(){
         if (wind_enabled){
             _airmolecule_count+= 0.5;
             while (_airmolecule_count>=1){
-                new AirMolecule(Config.canvasMainWidth, Helper.randint(10,Config.canvasMainHeight-10), -wind_speed, 0);
+                new AirMolecule(Config.canvasMainWidth, Math.random(), -wind_speed);
                 _airmolecule_count--;
             }
         }
@@ -450,23 +467,49 @@ async function run(){
             for (const tree of TreeList)
                 tree.draw_leaf();
 
+        
+        ctx_main.beginPath();
+        ctx_main.moveTo(0,Config.terrainGet(0));
+        for (let x=100; x<=Config.canvasMainWidth; x+=100){
+            ctx_main.lineTo(x, Config.terrainGet(x));
+        }
+        ctx_main.lineTo(Config.canvasMainWidth,Config.canvasMainHeight);
+        ctx_main.lineTo(0, Config.canvasMainHeight);
+        ctx_main.closePath();
+        ctx_main.fillStyle= 'brown';
+        ctx_main.fill();
+
+        ctx_main.beginPath();
+        ctx_main.moveTo(0,Config.terrainGet(0));
+        for (let x=100; x<=Config.canvasMainWidth; x+=100){
+            ctx_main.lineTo(x, Config.terrainGet(x));
+        }
+        ctx_main.lineTo(Config.canvasMainWidth,Config.terrainGet(Config.canvasMainWidth)+20);
+        for (let x=Config.canvasMainWidth; x>=0; x-=100){
+            ctx_main.lineTo(x, Config.terrainGet(x)+20);
+        }
+        ctx_main.closePath();
+        ctx_main.fillStyle= 'black';
+        ctx_main.fill();
+
         let _obj_count= RainDropList.length+AirMoleculeList.length;
         for (const tree of TreeList)
             _obj_count+= tree.nodeList.length;
-        _objCount_display.updateValue(_obj_count);
+        objCount_display.updateValue(_obj_count);
 
-        _rainOutput_display.updateValue(_temp_rain_output);
-        _temp_rain_output= 0;
-
-        _displayUpdate_counter++;
-        if (_displayUpdate_counter>= Config.statUpdateInterval){
-            _displayUpdate_counter= 0;
-            _objCount_display.updateDisplay();
-            _rainOutput_display.updateDisplay();
+        for (const tree of TreeList){
+            _temp_rain_output+= Math.floor(tree.waterAmount*9/10);
+            tree.waterAmount= 0;
         }
 
-        _objCount_display.draw();
-        _rainOutput_display.draw();
+        rainOutput_display.updateValue(_temp_rain_output);
+        _temp_rain_output= 0;
+
+        objCount_display.draw();
+        rainOutput_display.draw();
+        fps_display.draw();
+
+        frameCount++;
 
         let _dt= Date.now()-_timeStart;
         if (_dt<Config.DT)
@@ -474,4 +517,17 @@ async function run(){
     }
 }
 
+let lastRealTime= Date.now();
+function run_stat(){
+
+    fps_display.updateValue(frameCount*1000/(Date.now()-lastRealTime));
+    frameCount= 0;
+    lastRealTime= Date.now();
+
+    objCount_display.updateDisplay();
+    rainOutput_display.updateDisplay();
+    fps_display.updateDisplay();
+}
+
 run();
+setInterval(run_stat, Config.statUpdateInterval);

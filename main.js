@@ -12,6 +12,19 @@ const wind_activation_button= document.getElementById('wind_button');
 const wind_intensity_input= document.getElementById('wind_intensity_input');
 const wind_intensity_response= document.getElementById('wind_intensity_response');
 
+const tree_button_list=[
+    document.getElementById('tree_empty_button'),
+    document.getElementById('tree_column_button'),
+    document.getElementById('tree_layered_button'),
+    document.getElementById('tree_cone_button'),
+]
+
+const density_button_list=[
+    document.getElementById('low_density_button'),
+    document.getElementById('medium_density_button'),
+    document.getElementById('high_density_button')
+];
+
 const canvas_main= document.getElementById('canvas_main');
 const ctx_main= canvas_main.getContext('2d');
 const canvas_stat= document.getElementById('canvas_stat');
@@ -24,28 +37,40 @@ canvas_stat.height=Config.canvasStatHeight;
 
 ctx_main.lineCap= 'round';
 
+let DensityLevel= 0;
+let TreeType= -1;
+
 class TreeNode{
-    constructor(rel_angle, length, parent, data, nodeList, isroot=false){
+    constructor(rel_angle, parent, data, nodeList){
         this.x= 0;
         this.y= 0;
 
         this.d_angle=0;
         this.d_angle_speed=0;
         this.rel_angle= rel_angle;
-        this.abs_angle= rel_angle+parent.abs_angle;
-        this.length= length;
+        this.abs_angle= this.rel_angle+parent.abs_angle;
 
-        this.isroot= isroot;
+        
+        if (this.abs_angle<0 || this.abs_angle>1800){
+            this.rel_angle= -this.rel_angle;
+            this.abs_angle= this.rel_angle+parent.abs_angle;
+        }
+        
+        this.leafCollisionPoint1= {x: 0, y:0};
+        this.leafCollisionPoint2= {x: 0, y:0};
         this.data= data;
+        this.length= Helper.randint(this.data.MinLength, this.data.MaxLength);
         this.parent= parent;
-        this.child= [];
         nodeList.push(this);
 
         this.waterAmount= 0;
+        this.toughness= this.data.LeafToughness;
     }
 
+    //hàm cũ
+    /*
     async grow(nodeList, leafList, countminimum, countLimit, ChildChance=this.data.ChildChance, StopChance=this.data.StopChance){
-        if (!(nodeList.length<countminimum) && (nodeList.length>=countLimit || Helper.testChance(StopChance))){
+        if (StopChance>=1 || (!(nodeList.length<countminimum) && (nodeList.length>=countLimit || Helper.testChance(StopChance)))){
             leafList.push(this);
             this.leafRadius= Helper.randint(this.data.MinLeafRadius,this.data.MaxLeafRadius);
             return;
@@ -67,6 +92,56 @@ class TreeNode{
         
         for (const child of this.child)
             child.grow(nodeList, leafList, countminimum, countLimit, ChildChance+this.data.ChildChance_PerNode, StopChance+this.data.StopChance_PerNode);
+
+        for (const child of this.child)
+            this.toughness= Math.max(this.toughness, child.toughness+this.data.ToughnessPerNode);
+    }
+    */
+
+    get_toughness(child){
+        this.toughness= Math.max(this.toughness, child.toughness+this.data.ToughnessPerNode);
+    }
+
+    async grow(nodeList, leafList, isMainBranch=true, height=1){
+        if (nodeList.length>=this.data.MaxNodeCount || (height>=this.data.MaxHeight || (height>=this.data.MinHeight && Helper.testChance(this.data.StopChance)))){
+            leafList.push(this);
+            this.leafRadius= Helper.randint(this.data.MinLeafRadius,this.data.MaxLeafRadius);
+            return;
+        }
+
+        let _child= new TreeNode(Helper.randint(0, this.data.FirstChildMaxAngle)*Helper.randsign(),
+                                 this,
+                                 this.data,
+                                 nodeList);
+
+        _child.grow(nodeList, leafList, isMainBranch, height+1)
+        
+        this.get_toughness(_child);
+
+        let _childCount= 1;
+        
+        if (!(!isMainBranch && !this.data.ComplexChild) && height>=this.data.ChildStart)
+            while (_childCount<this.data.MaxChild && nodeList.length<this.data.MaxNodeCount && Helper.testChance(this.data.ChildChance)){
+                
+                let _angle= Helper.randint(this.data.ChildMinAngle, this.data.ChildMaxAngle)*Helper.randsign();
+                _child= new TreeNode(_angle,
+                                     this,
+                                     this.data,
+                                     nodeList);
+                _child.grow(nodeList, leafList, false, height+this.data.HeightInc)
+                this.get_toughness(_child);
+                _childCount++;
+                
+                if (!isMainBranch || !this.data.ChildSymmetry) continue;
+                
+                _child= new TreeNode(-_angle,
+                                     this,
+                                     this.data,
+                                     nodeList);
+                _child.grow(nodeList, leafList, false, height+this.data.HeightInc)
+                this.get_toughness(_child);
+                _childCount++;
+            }
     }
 
     update(){
@@ -83,6 +158,18 @@ class TreeNode{
         this.parent.waterAmount+= _waterFlow;
     }
 
+    update_leaf_collision_cords(){
+        const _length= this.leafRadius;
+        this.leafCollisionPoint1= {
+            x: Math.round(this.x-_length*Math.sin(Helper.to_rad(this.abs_angle))),
+            y: Math.round(this.y-_length*Math.cos(Helper.to_rad(this.abs_angle)))
+        };
+        this.leafCollisionPoint2= {
+            x: Math.round(this.x+_length*Math.sin(Helper.to_rad(this.abs_angle))),
+            y: Math.round(this.y+_length*Math.cos(Helper.to_rad(this.abs_angle)))
+        };
+    }
+
     draw_branch(){
         if (this.parent===null)
             return;
@@ -95,24 +182,30 @@ class TreeNode{
         //để như này cho đẹp :)))
         Draw.circle(ctx_main,this.x-_offSet-5,this.y+_offSet-5,this.leafRadius-_offSet+5,this.data.LeafCol);
         Draw.circle(ctx_main,this.x+_offSet+5,this.y+_offSet-5,this.leafRadius-_offSet+5,this.data.LeafCol);
+
+        //Draw.line(ctx_main, this.leafCollisionPoint1.x, this.leafCollisionPoint1.y, this.leafCollisionPoint2.x, this.leafCollisionPoint2.y, 'green', 10);
     }
 }
 
 let TreeList=[], RainDropList=[], AirMoleculeList= [];
-let _temp_rain_output= 0;
+let _temp_rain_output= 0, _temp_wind_output_speed_sum= 0, _temp_wind_ouput_count= 0;
 
 class Tree{
-    constructor(x,data){
+    constructor(x, type){
         this.x= x;
         this.y= Config.terrainGet(x);
 
         this.abs_angle=900;
 
-        this.data= data;
+        if (DensityLevel==0) this.data= type.LowDensity;
+        else if (DensityLevel==1) this.data= type.MediumDensity
+        else this.data= type.HighDensity;
+
         this.nodeList= [];
         this.leafList= [];
-        this.root= new TreeNode(0, 0, this, data.NodeData, this.nodeList, true);
-        this.root.grow(this.nodeList, this.leafList, this.data.MinNodeCount, this.data.MaxNodeCount);
+        
+        this.root= new TreeNode(0, this, this.data, this.nodeList);
+        this.root.grow(this.nodeList, this.leafList);
 
         this.boundingBox= null;
         this.update();
@@ -127,7 +220,10 @@ class Tree{
         for (const node of this.nodeList)
             node.update();
 
-        this.boundingBox= Helper.get_boundingBox(...this.nodeList);
+        for (const node of this.leafList)
+            node.update_leaf_collision_cords();
+
+        this.boundingBox= Helper.get_boundingBox(...this.nodeList, ...this.leafList.flatMap(node => [node.leafCollisionPoint1, node.leafCollisionPoint2]));
     }
 
     draw_branch(){
@@ -136,8 +232,8 @@ class Tree{
 
         if (!Config.drawRoot)
             return;
-        for (let offSet= -Math.ceil(this.data.NodeData.Diameter/2); offSet<=this.data.NodeData.Diameter/2; offSet+=this.data.NodeData.Diameter)
-            Draw.line(ctx_main,this.x+offSet, this.y+10, this.x, this.y-20, this.data.NodeData.BranchCol, this.data.NodeData.Diameter);
+        for (let offSet= -Math.ceil(this.data.Diameter/2); offSet<=this.data.Diameter/2; offSet+=this.data.Diameter)
+            Draw.line(ctx_main,this.x+offSet, this.y+10, this.x, this.y-20, this.data.BranchCol, this.data.Diameter);
     }
 
     draw_leaf(){
@@ -175,14 +271,28 @@ class RainDrop{
         let _boundingBox= Helper.get_boundingBox(_cord,_lastCord);
 
         for (const tree of TreeList){
-            if (!Helper.collision_box(_boundingBox, tree.boundingBox))
-                continue;
+            //if (!Helper.collision_box(_boundingBox, tree.boundingBox))
+            //    continue;
+
+            for (const node of tree.leafList){
+                if (Helper.testChance(0.5) && Helper.collision_line(_lastCord, _cord, node.leafCollisionPoint1, node.leafCollisionPoint2)){
+                    this.exist= false;
+                    node.d_angle_speed+=Math.round(this.force/node.toughness)*Helper.get_direction(node, node.parent, _cord);
+
+                    node.waterAmount++;
+                    
+                    if (Config.drawRainDropCollision)
+                        Draw.circle(ctx_main,this.x, this.y, 15, 'red');
+
+                    return;
+                }
+            }
 
             for (const node of tree.nodeList){
                 if (node.parent===null) continue;
                 if (Helper.collision_line(_lastCord, _cord, node, node.parent)){
                     this.exist= false;
-                    node.d_angle_speed-=this.force*Helper.get_direction(node, node.parent, _lastCord);
+                    node.d_angle_speed-=Math.round(this.force/node.toughness)*Helper.get_direction(node, node.parent, _lastCord);
 
                     node.waterAmount++;
                     
@@ -209,6 +319,7 @@ class AirMolecule{
         this.y= Math.round(Config.terrainGet(this.x)*this.py);
         this.sx= sx;
         this.exist= true;
+        this.collided= false;
 
         AirMoleculeList.push(this);
     }
@@ -219,8 +330,14 @@ class AirMolecule{
         this.x+= this.sx;
         this.y= Math.round(Config.terrainGet(this.x)*this.py);
 
-        if (Math.abs(this.sx)<1 || this.x<0){
+        if (Math.abs(this.sx)<0.5 || this.x<0){
             this.exist= false;
+
+            if (this.collided){
+                _temp_wind_ouput_count++;
+                _temp_wind_output_speed_sum+= Math.abs(this.sx);
+            }
+
             return;
         }
 
@@ -234,11 +351,11 @@ class AirMolecule{
             for (const node of tree.nodeList){
                 if (node.parent===null) continue;
                 if (Helper.collision_line(_lastCord, _cord, node, node.parent)){
-                    //this.exist= false;
-                    node.d_angle_speed-=(Math.floor(Math.abs(this.sx)))*Helper.get_direction(node, node.parent, _lastCord);
+                    node.d_angle_speed-=Math.round(Math.abs(this.sx)*5/node.toughness)*Helper.get_direction(node, node.parent, _lastCord);
 
                     this.sx*= 0.9;
-                    this.sy*= 0.9;
+
+                    this.collided= true;
                 }
             }
         }
@@ -246,30 +363,67 @@ class AirMolecule{
 
     draw(){
         if (Config.drawAirMolecule)
-            Draw.circle(ctx_main, this.x, this.y, 10, 'red');
+            Draw.circle(ctx_main, this.x, this.y, 3, 'red');
     }
 }
 
-document.getElementById('test_button').onclick= ()=>{
-    TreeList.length= 0;
+function create_tree(){
+    let xstep= 100;
+    switch(DensityLevel){
+        case 0:
+            xstep = 200;
+            break;
+        case 1:
+            xstep = 125;
+            break;
+        case 2:
+            xstep = 75;
+    }
 
-    for (let x= 100; x<canvas_main.width-50; x+=100)
-        new Tree(x, Data.DefaultData);
+    TreeList.length= 0;
+    let typeData= null;
+
+    switch(TreeType){
+        case 0:
+            return;
+        case 1:
+            typeData= Data.Column;
+            break;
+        case 2:
+            typeData= Data.Layered;
+            break;
+        case 3:
+            typeData= Data.Cone;
+            break;
+    }
+
+    
+    for (let x=100; x<=canvas_main.width-100; x+=xstep)
+        new Tree(x, typeData);
 }
 
-document.getElementById('test_button2').onclick= ()=>{
-    TreeList.length= 0;
+for (let i=0; i<tree_button_list.length; i++){
+    tree_button_list[i].onclick= (event)=>{
+        TreeType= i;
 
-    for (let x= 100; x<canvas_main.width-50; x+=100)
-        new Tree(x, Data.SecondTree);
+        for (const _button of tree_button_list)
+            _button.classList.remove('activating');
+        event.currentTarget.classList.add('activating');
+
+        create_tree();
+    }
 }
 
+for (let i=0; i<density_button_list.length; i++){
+    density_button_list[i].onclick= (event)=>{
+        DensityLevel= i;
 
-document.getElementById('test_button3').onclick= ()=>{
-    TreeList.length= 0;
+        for (const _button of density_button_list)
+            _button.classList.remove('activating');
+        event.currentTarget.classList.add('activating');
 
-    for (let x= 100; x<canvas_main.width-50; x+=100)
-        new Tree(x, Data.FourthTree);
+        create_tree();
+    }
 }
 
 function validate_input(input, minVal, currVal, level_data, responseElement){
@@ -296,16 +450,16 @@ let rain_enabled= false, wind_enabled= false, rain_intensity= 1, wind_intensity=
 rain_activation_button.onclick= ()=>{
     if (rain_enabled){
         rain_enabled= false;
-        rain_intensity_input.disabled= true;
         rain_activation_button.textContent= 'Bật mưa';
+        rain_activation_button.classList.remove('activating');
         rain_intensity= 0;
         rain_intensity_response.textContent= '---';
         rain_intensity_response.style.color= 'black';
     }
     else{
         rain_enabled= true;
-        rain_intensity_input.disabled= false;
         rain_activation_button.textContent= 'Tắt mưa';
+        rain_activation_button.classList.add('activating');
         rain_intensity= validate_input(rain_intensity_input, 1, rain_intensity, LevelData.RainData, rain_intensity_response);
     }
 }
@@ -317,8 +471,8 @@ rain_intensity_input.addEventListener('input', ()=>{
 wind_activation_button.onclick= ()=>{
     if (wind_enabled){
         wind_enabled= false;
-        wind_intensity_input.disabled= true;
         wind_activation_button.textContent= 'Bật gió';
+        wind_activation_button.classList.remove('activating');
         wind_intensity= 0;
         wind_speed= 0;
         wind_intensity_response.textContent= '---';
@@ -326,8 +480,8 @@ wind_activation_button.onclick= ()=>{
     }
     else{
         wind_enabled= true;
-        wind_intensity_input.disabled= false;
         wind_activation_button.textContent= 'Tắt gió';
+        wind_activation_button.classList.add('activating');
         wind_intensity= validate_input(wind_intensity_input, 5, wind_intensity, LevelData.WindData, wind_intensity_response);
         wind_speed= Math.max(Math.ceil(wind_intensity*28/108), 1);
     }
@@ -335,7 +489,7 @@ wind_activation_button.onclick= ()=>{
 
 wind_intensity_input.addEventListener('input', ()=>{
     wind_intensity= validate_input(wind_intensity_input, 5, wind_intensity, LevelData.WindData, wind_intensity_response);
-    wind_speed= Math.max(Math.ceil(wind_intensity*28/108), 1);
+    if (wind_enabled) wind_speed= Math.max(Math.ceil(wind_intensity*28/108), 1);
 });
 
 class predictVal{
@@ -405,8 +559,9 @@ class statDisplay{
 }
 
 let objCount_display= new statDisplay(20,60,60,'Object count: ',' object', new predictVal);
-let rainOutput_display= new statDisplay(20,120,60,'Rain ouput: ','', new avgVal, 2);
-let fps_display= new statDisplay(20,180,60,'',' FPS', new predictVal(0.1, 60), 1);
+let rainOutput_display= new statDisplay(20,120,60,'Rain ouput: ','', new predictVal, 2);
+let windOutput_display= new statDisplay(20,180,60,'Wind ouput: ','px/s', new avgVal, 2);
+let fps_display= new statDisplay(20,240,60,'',' FPS', new predictVal(0.1, 60), 1);
 let frameCount= 0;
 
 async function run(){
@@ -498,18 +653,28 @@ async function run(){
         objCount_display.updateValue(_obj_count);
 
         for (const tree of TreeList){
-            _temp_rain_output+= Math.floor(tree.waterAmount*9/10);
+            _temp_rain_output+= Math.floor(tree.waterAmount*10/10);
             tree.waterAmount= 0;
         }
 
         rainOutput_display.updateValue(_temp_rain_output);
         _temp_rain_output= 0;
 
+        if (_temp_wind_ouput_count==0)
+            windOutput_display.updateValue(0);
+        else
+            windOutput_display.updateValue(_temp_wind_output_speed_sum/_temp_wind_ouput_count);
+        _temp_wind_ouput_count= 0;
+        _temp_wind_output_speed_sum= 0;
+
         objCount_display.draw();
         rainOutput_display.draw();
+        windOutput_display.draw();
         fps_display.draw();
 
         frameCount++;
+
+        //Draw.line(ctx_main, 50, Config.terrainGet(50), 50, Config.terrainGet(50)-50, 'black', 10);
 
         let _dt= Date.now()-_timeStart;
         if (_dt<Config.DT)
@@ -526,6 +691,7 @@ function run_stat(){
 
     objCount_display.updateDisplay();
     rainOutput_display.updateDisplay();
+    windOutput_display.updateDisplay();
     fps_display.updateDisplay();
 }
 

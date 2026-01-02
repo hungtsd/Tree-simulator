@@ -8,7 +8,7 @@ export const canvasMainWidth= 2000,
              DT= Math.floor(1000/FPSCap),
              statUpdateInterval= 500,
              avgValperiod= 120,
-             terrainGet= Terrain.parabolic;
+             terrainGet= Terrain.linear;
 
 export const drawLeaf= true,
              drawRoot= true,

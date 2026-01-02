@@ -7,9 +7,18 @@
     </head>
     <body>
         <div id="tree_div">
-            <button id="test_button">Cây 1</button>
-            <button id="test_button2">Cây 2</button>
-            <button id="test_button3">Cây 3</button>
+            <span class="div_title">Loại cây</span>
+            <button id="tree_empty_button" type="button">Trống</button>
+            <button id="tree_column_button" type="button">Dạng cột</button>
+            <button id="tree_layered_button" type="button">Dạng tầng</button>
+            <button id="tree_cone_button" type="button">Dạng nón</button>
+        </div>
+
+        <div id="density_div">
+            <span class="div_title">Mật độ cây</span>
+            <button id="low_density_button" type="button" class="activating">Thấp</button>
+            <button id="medium_density_button" type="button">Trung bình</button>
+            <button id="high_density_button" type="button">Cao</button>
         </div>
 
         <div id="canvas_main_div">
@@ -17,24 +26,26 @@
         </div>
 
         <div id="weather_and_stat_div">
+            
             <div id="weather_div">
+                <span class="div_title">Mưa và gió</span>
                 <div id="rain_div">
-                    <button id="rain_button">Bật mưa</button>
+                    <button id="rain_button" type="button">Bật mưa</button>
                     <div id="rain_input_div">
                         <div id="rain_input_inner_div">
-                            <input id="rain_intensity_input" maxlength="3" placeholder="1" disabled>
-                            <p>mm/24h</p>
+                            <input id="rain_intensity_input" maxlength="3" placeholder="1" enabled>
+                            <p id="rain_intensity_unit">mm/24h</p>
                         </div>
                         <p id="rain_intensity_response">---</p>
                     </div>
                 </div>
 
                 <div id="wind_div">
-                    <button id="wind_button">Bật gió</button>
+                    <button id="wind_button" type="button">Bật gió</button>
                     <div id="wind_input_div">
                         <div id="wind_input_inner_div">
-                            <input id="wind_intensity_input" maxlength="3" placeholder="5" disabled>
-                            <p>km/h</p>
+                            <input id="wind_intensity_input" maxlength="3" placeholder="5" enabled>
+                            <p id="wind_intensity_unit">km/h</p>
                         </div>
                         <p id="wind_intensity_response">---</p>
                     </div>

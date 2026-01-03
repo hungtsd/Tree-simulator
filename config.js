@@ -8,7 +8,11 @@ export const canvasMainWidth= 2000,
              DT= Math.floor(1000/FPSCap),
              statUpdateInterval= 500,
              avgValperiod= 120,
-             terrainGet= Terrain.linear;
+             terrainGet= Terrain.linear,
+             meterToPixelRatio= 25,
+             innerDegreeRatio= 10,
+             rainDropNormalVolume= 0.02,
+             rainDropCap= 10;
 
 export const drawLeaf= true,
              drawRoot= true,

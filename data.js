@@ -154,14 +154,14 @@ export const Layered={
         ChildMaxAngle: 350,
 
         MaxChild: 2,
-        ChildChance: 0.5,
+        ChildChance: 0.75,
         ChildSymmetry: true,
         ComplexChild: true,
         HeightInc: 5,
         ChildStart: 3,
         MinHeight: 4,
         MaxHeight: 6,
-        StopChance: 0.3,
+        StopChance: 0.2,
         MaxNodeCount: 12
     }
 }
@@ -244,6 +244,90 @@ export const Cone={
         HeightInc: 3,
         ChildStart: 3,
         MinHeight: 5,
+        MaxHeight: 7,
+        StopChance: 0.5,
+        MaxNodeCount: 12
+    }
+}
+
+export const Spread={
+    
+    LowDensity: {
+        Diameter: 12,
+        MinLeafRadius: 30,
+        MaxLeafRadius: 40,
+        BranchCol: 'brown',
+        LeafCol: 'green',
+        MinLength: 25,
+        MaxLength: 35,
+        LeafToughness: 1,
+        ToughnessPerNode: 0.5,
+
+        FirstChildMaxAngle: 50,
+        ChildMinAngle: 650,
+        ChildMaxAngle: 750,
+
+        MaxChild: 3,
+        ChildChance: 0.75,
+        ChildSymmetry: false,
+        ComplexChild: true,
+        HeightInc: 1,
+        ChildStart: 4,
+        MinHeight: 8,
+        MaxHeight: 10,
+        StopChance: 0.5,
+        MaxNodeCount: 30
+    },
+
+    MediumDensity: {
+        Diameter: 10,
+        MinLeafRadius: 30,
+        MaxLeafRadius: 40,
+        BranchCol: 'brown',
+        LeafCol: 'green',
+        MinLength: 50,
+        MaxLength: 60,
+        LeafToughness: 1,
+        ToughnessPerNode: 0.5,
+
+        FirstChildMaxAngle: 40,
+        ChildMinAngle: 550,
+        ChildMaxAngle: 650,
+
+        MaxChild: 3,
+        ChildChance: 0.75,
+        ChildSymmetry: false,
+        ComplexChild: true,
+        HeightInc: 1,
+        ChildStart: 3,
+        MinHeight: 5,
+        MaxHeight: 7,
+        StopChance: 0.5,
+        MaxNodeCount: 20
+    },
+
+    HighDensity: {
+        Diameter: 8,
+        MinLeafRadius: 25,
+        MaxLeafRadius: 35,
+        BranchCol: 'brown',
+        LeafCol: 'green',
+        MinLength: 55,
+        MaxLength: 65,
+        LeafToughness: 1,
+        ToughnessPerNode: 0.5,
+
+        FirstChildMaxAngle: 30,
+        ChildMinAngle: 500,
+        ChildMaxAngle: 600,
+
+        MaxChild: 3,
+        ChildChance: 0.75,
+        ChildSymmetry: false,
+        ConplexChild: true,
+        HeightInc: 1,
+        ChildStart: 4,
+        MinHeight: 6,
         MaxHeight: 7,
         StopChance: 0.5,
         MaxNodeCount: 12

@@ -1,3 +1,5 @@
+import * as Config from './config.js';
+
 export function sleep(ms){
     return new Promise(result => setTimeout(result, ms));
 }
@@ -68,7 +70,23 @@ export function collision_box(box1, box2){
 }
 
 export function to_rad(angle){
-    return angle/1800*Math.PI;
+    return angle/(180*Config.innerDegreeRatio)*Math.PI;
+}
+
+export function kmh_to_pxf(speed){
+    return Math.round(speed*Config.meterToPixelRatio/(3.6*Config.FPSCap));
+}
+
+export function pxf_to_kmh(speed){
+    return Math.round(speed*3.6*Config.FPSCap/Config.meterToPixelRatio);
+}
+
+export function mm24h_to_rpf(num){
+    return Math.round(Config.canvasMainWidth/Config.meterToPixelRatio*num/(86.4*Config.FPSCap)/Config.rainDropNormalVolume*1000)/1000;
+}
+
+export function mm24h_to_vol(num){
+    return Math.round(Config.canvasMainWidth/Config.meterToPixelRatio*num/(86.4*Config.FPSCap)/Config.rainDropCap*1000)/1000;
 }
 
 export function is_a_number(string){

@@ -17,6 +17,8 @@ const tree_button_list=[
     document.getElementById('tree_column_button'),
     document.getElementById('tree_layered_button'),
     document.getElementById('tree_cone_button'),
+    document.getElementById('tree_spread_button'),
+    document.getElementById('tree_mix_button')
 ]
 
 const density_button_list=[
@@ -38,7 +40,7 @@ canvas_stat.height=Config.canvasStatHeight;
 ctx_main.lineCap= 'round';
 
 let DensityLevel= 0;
-let TreeType= -1;
+let TreeType= 0;
 
 class TreeNode{
     constructor(rel_angle, parent, data, nodeList){
@@ -66,37 +68,6 @@ class TreeNode{
         this.waterAmount= 0;
         this.toughness= this.data.LeafToughness;
     }
-
-    //hàm cũ
-    /*
-    async grow(nodeList, leafList, countminimum, countLimit, ChildChance=this.data.ChildChance, StopChance=this.data.StopChance){
-        if (StopChance>=1 || (!(nodeList.length<countminimum) && (nodeList.length>=countLimit || Helper.testChance(StopChance)))){
-            leafList.push(this);
-            this.leafRadius= Helper.randint(this.data.MinLeafRadius,this.data.MaxLeafRadius);
-            return;
-        }
-
-        this.child.push(new TreeNode(Helper.randint(0, this.data.FirstChildMaxAngle)*Helper.randsign(),
-                                     Helper.randint(this.data.MinLength, this.data.MaxLength),
-                                     this,
-                                     this.data,
-                                     nodeList));
-
-        while (this.child.length<this.data.MaxChild && nodeList.length<countLimit && Helper.testChance(ChildChance))
-
-            this.child.push(new TreeNode(Helper.randint(this.data.ChildMinAngle, this.data.ChildMaxAngle)*Helper.randsign(),
-                                         Helper.randint(this.data.MinLength, this.data.MaxLength),
-                                         this,
-                                         this.data,
-                                         nodeList));
-        
-        for (const child of this.child)
-            child.grow(nodeList, leafList, countminimum, countLimit, ChildChance+this.data.ChildChance_PerNode, StopChance+this.data.StopChance_PerNode);
-
-        for (const child of this.child)
-            this.toughness= Math.max(this.toughness, child.toughness+this.data.ToughnessPerNode);
-    }
-    */
 
     get_toughness(child){
         this.toughness= Math.max(this.toughness, child.toughness+this.data.ToughnessPerNode);
@@ -153,7 +124,7 @@ class TreeNode{
         this.x= this.parent.x + Math.round(this.length*Math.cos(Helper.to_rad(this.abs_angle)));
         this.y= this.parent.y - Math.round(this.length*Math.sin(Helper.to_rad(this.abs_angle)));
 
-        let _waterFlow= Math.ceil(this.waterAmount/10);
+        let _waterFlow= Math.ceil(this.waterAmount/1000);
         this.waterAmount-= _waterFlow;
         this.parent.waterAmount+= _waterFlow;
     }
@@ -188,7 +159,8 @@ class TreeNode{
 }
 
 let TreeList=[], RainDropList=[], AirMoleculeList= [];
-let _temp_rain_output= 0, _temp_wind_output_speed_sum= 0, _temp_wind_ouput_count= 0;
+
+let rainCount= 0, rainHitCount= 0, rainAbsorbed= 0, windCount= 0, windSpeedSum= 0;
 
 class Tree{
     constructor(x, type){
@@ -248,8 +220,9 @@ class RainDrop{
         this.y= y;
         this.sx= sx;
         this.sy= sy;
-        this.force= Math.ceil(vol/2);
-        this.thickness= Math.ceil(vol/15);
+        this.vol= vol;
+        this.force= vol*200;
+        this.thickness= Math.min(Math.ceil(vol*10),5);
         this.exist= true;
 
         RainDropList.push(this);
@@ -263,23 +236,26 @@ class RainDrop{
 
         if (_lastCord.y>Config.terrainGet(this.x)+15){
             this.exist= false;
-            _temp_rain_output++;
+            rainAbsorbed+= this.vol;
+            rainCount++;
+            rainHitCount++;
             return;
         }
         
         let _cord= {x: this.x, y:this.y};
         let _boundingBox= Helper.get_boundingBox(_cord,_lastCord);
-
+        
         for (const tree of TreeList){
-            //if (!Helper.collision_box(_boundingBox, tree.boundingBox))
-            //    continue;
+            if (!Helper.collision_box(_boundingBox, tree.boundingBox))
+                continue;
 
             for (const node of tree.leafList){
                 if (Helper.testChance(0.5) && Helper.collision_line(_lastCord, _cord, node.leafCollisionPoint1, node.leafCollisionPoint2)){
                     this.exist= false;
                     node.d_angle_speed+=Math.round(this.force/node.toughness)*Helper.get_direction(node, node.parent, _cord);
 
-                    node.waterAmount++;
+                    node.waterAmount+=this.vol;
+                    rainCount++;
                     
                     if (Config.drawRainDropCollision)
                         Draw.circle(ctx_main,this.x, this.y, 15, 'red');
@@ -294,7 +270,8 @@ class RainDrop{
                     this.exist= false;
                     node.d_angle_speed-=Math.round(this.force/node.toughness)*Helper.get_direction(node, node.parent, _lastCord);
 
-                    node.waterAmount++;
+                    node.waterAmount+=this.vol;
+                    rainCount++;
                     
                     if (Config.drawRainDropCollision)
                         Draw.circle(ctx_main,this.x, this.y, 15, 'red');
@@ -333,9 +310,9 @@ class AirMolecule{
         if (Math.abs(this.sx)<0.5 || this.x<0){
             this.exist= false;
 
-            if (this.collided){
-                _temp_wind_ouput_count++;
-                _temp_wind_output_speed_sum+= Math.abs(this.sx);
+            if (this.collided || TreeType==0){
+                windCount++;
+                windSpeedSum+= Math.abs(this.sx);
             }
 
             return;
@@ -395,6 +372,19 @@ function create_tree(){
         case 3:
             typeData= Data.Cone;
             break;
+        case 4:
+            typeData= Data.Spread;
+            break;
+        
+        case 5:
+            for (let x=100; x<=canvas_main.width-100; x+=xstep*4)
+                new Tree(x, Data.Column);
+            for (let x=100+xstep; x<=canvas_main.width-100; x+=xstep*4)
+                new Tree(x, Data.Layered);
+            for (let x=100+xstep*2; x<=canvas_main.width-100; x+=xstep*4)
+                new Tree(x, Data.Cone);
+            for (let x=100+xstep*3; x<=canvas_main.width-100; x+=xstep*4)
+                new Tree(x, Data.Spread);
     }
 
     
@@ -446,7 +436,7 @@ function validate_input(input, minVal, currVal, level_data, responseElement){
     return _inputVal;
 }
 
-let rain_enabled= false, wind_enabled= false, rain_intensity= 1, wind_intensity= 0, wind_speed= 0;
+let rain_enabled= false, wind_enabled= false, rain_intensity= 1, wind_intensity= 0;
 rain_activation_button.onclick= ()=>{
     if (rain_enabled){
         rain_enabled= false;
@@ -474,7 +464,6 @@ wind_activation_button.onclick= ()=>{
         wind_activation_button.textContent= 'Bật gió';
         wind_activation_button.classList.remove('activating');
         wind_intensity= 0;
-        wind_speed= 0;
         wind_intensity_response.textContent= '---';
         wind_intensity_response.style.color= 'black';
     }
@@ -483,13 +472,11 @@ wind_activation_button.onclick= ()=>{
         wind_activation_button.textContent= 'Tắt gió';
         wind_activation_button.classList.add('activating');
         wind_intensity= validate_input(wind_intensity_input, 5, wind_intensity, LevelData.WindData, wind_intensity_response);
-        wind_speed= Math.max(Math.ceil(wind_intensity*28/108), 1);
     }
 }
 
 wind_intensity_input.addEventListener('input', ()=>{
     wind_intensity= validate_input(wind_intensity_input, 5, wind_intensity, LevelData.WindData, wind_intensity_response);
-    if (wind_enabled) wind_speed= Math.max(Math.ceil(wind_intensity*28/108), 1);
 });
 
 class predictVal{
@@ -558,14 +545,43 @@ class statDisplay{
     }
 }
 
-let objCount_display= new statDisplay(20,60,60,'Object count: ',' object', new predictVal);
-let rainOutput_display= new statDisplay(20,120,60,'Rain ouput: ','', new predictVal, 2);
-let windOutput_display= new statDisplay(20,180,60,'Wind ouput: ','px/s', new avgVal, 2);
-let fps_display= new statDisplay(20,240,60,'',' FPS', new predictVal(0.1, 60), 1);
+let objCount_display= new statDisplay(50,100,100,'Object count: ','', new predictVal);
+let rainVolume_display= new statDisplay(50,350,100,'Lượng mưa: ',' ml/s', new avgVal, 2);
+let rainTF_display= new statDisplay(50,450,100, 'Tỉ lệ nước bị chắn: ', '%', new avgVal, 1);
+let windSpeed_display= new statDisplay(50,550,100,'Tốc độ gió: ','km/h', new avgVal, 2);
+let fps_display= new statDisplay(50,700,100,'',' FPS', new predictVal(0.1, 60), 1);
 let frameCount= 0;
 
+function spawnRainDrop(accumulate){
+    let windSpeed= 0;
+    if (wind_enabled) windSpeed= Helper.kmh_to_pxf(wind_intensity);
+
+    let dropCount= Helper.mm24h_to_rpf(rain_intensity),
+        dropVolume= Config.rainDropNormalVolume;
+    if (dropCount>Config.rainDropCap){
+        dropVolume= Helper.mm24h_to_vol(rain_intensity);
+        dropCount=  Config.rainDropCap;
+    }
+    dropCount+= accumulate;
+    while (dropCount>=1){
+        new RainDrop(Helper.randint(-100,Config.canvasMainWidth+100),0,-windSpeed, 15, dropVolume);
+        --dropCount;
+    }
+    return dropCount;
+}
+
+function spawnAirMolecule(accumulate){
+    let windSpeed= Helper.kmh_to_pxf(wind_intensity);
+    accumulate+= 0.5;
+    while (accumulate>=1){
+        new AirMolecule(Config.canvasMainWidth, Math.random(), -windSpeed);
+        accumulate--;
+    }
+    return accumulate;
+}
+
 async function run(){
-    let _raindrop_count= 0, _airmolecule_count= 0;
+    let rainDropLast= 0, airMoleculeLast= 0;
 
     while (true){
         let _timeStart= Date.now();
@@ -574,22 +590,11 @@ async function run(){
             Draw.clear_canvas(ctx_main, Config.canvasMainHeight, Config.canvasMainWidth);
         Draw.clear_canvas(ctx_stat, Config.canvasStatHeight, Config.canvasStatWidth);
 
-        if (rain_enabled){
-            _raindrop_count+= Math.min(rain_intensity/10,10);
-            let _vol= Math.ceil(rain_intensity/10), _speed= 15+Math.floor(_vol/10);
-            while (_raindrop_count>=1){
-                new RainDrop(Helper.randint(-100,Config.canvasMainWidth+100), 0, -wind_speed, _speed, _vol);
-                _raindrop_count--;
-            }
-        }
+        if (rain_enabled)
+            rainDropLast= spawnRainDrop(rainDropLast);
 
-        if (wind_enabled){
-            _airmolecule_count+= 0.5;
-            while (_airmolecule_count>=1){
-                new AirMolecule(Config.canvasMainWidth, Math.random(), -wind_speed);
-                _airmolecule_count--;
-            }
-        }
+        if (wind_enabled)
+            airMoleculeLast= spawnAirMolecule(airMoleculeLast);
 
         for (const tree of TreeList)
             tree.update();
@@ -622,30 +627,7 @@ async function run(){
             for (const tree of TreeList)
                 tree.draw_leaf();
 
-        
-        ctx_main.beginPath();
-        ctx_main.moveTo(0,Config.terrainGet(0));
-        for (let x=100; x<=Config.canvasMainWidth; x+=100){
-            ctx_main.lineTo(x, Config.terrainGet(x));
-        }
-        ctx_main.lineTo(Config.canvasMainWidth,Config.canvasMainHeight);
-        ctx_main.lineTo(0, Config.canvasMainHeight);
-        ctx_main.closePath();
-        ctx_main.fillStyle= 'brown';
-        ctx_main.fill();
-
-        ctx_main.beginPath();
-        ctx_main.moveTo(0,Config.terrainGet(0));
-        for (let x=100; x<=Config.canvasMainWidth; x+=100){
-            ctx_main.lineTo(x, Config.terrainGet(x));
-        }
-        ctx_main.lineTo(Config.canvasMainWidth,Config.terrainGet(Config.canvasMainWidth)+20);
-        for (let x=Config.canvasMainWidth; x>=0; x-=100){
-            ctx_main.lineTo(x, Config.terrainGet(x)+20);
-        }
-        ctx_main.closePath();
-        ctx_main.fillStyle= 'black';
-        ctx_main.fill();
+        Draw.draw_terrain(ctx_main);
 
         let _obj_count= RainDropList.length+AirMoleculeList.length;
         for (const tree of TreeList)
@@ -653,24 +635,27 @@ async function run(){
         objCount_display.updateValue(_obj_count);
 
         for (const tree of TreeList){
-            _temp_rain_output+= Math.floor(tree.waterAmount*10/10);
+            rainAbsorbed+= tree.waterAmount;
             tree.waterAmount= 0;
         }
 
-        rainOutput_display.updateValue(_temp_rain_output);
-        _temp_rain_output= 0;
+        if (rainCount==0) rainTF_display.updateValue(0);
+        else rainTF_display.updateValue((rainCount-rainHitCount)/rainCount*100);
+        rainVolume_display.updateValue(rainAbsorbed*60);
+        rainAbsorbed= 0;
+        rainCount=0;
+        rainHitCount=0;
 
-        if (_temp_wind_ouput_count==0)
-            windOutput_display.updateValue(0);
-        else
-            windOutput_display.updateValue(_temp_wind_output_speed_sum/_temp_wind_ouput_count);
-        _temp_wind_ouput_count= 0;
-        _temp_wind_output_speed_sum= 0;
+        if (windCount!=0) windSpeed_display.updateValue(Helper.pxf_to_kmh(windSpeedSum/windCount));
+        else if (!wind_enabled) windSpeed_display.updateValue(0); //còn cách sửa nào hay hơn ko :(
+        windCount= 0;
+        windSpeedSum= 0;
 
-        objCount_display.draw();
-        rainOutput_display.draw();
-        windOutput_display.draw();
-        fps_display.draw();
+        //objCount_display.draw();
+        rainVolume_display.draw();
+        rainTF_display.draw();
+        windSpeed_display.draw();
+        //fps_display.draw();
 
         frameCount++;
 
@@ -690,8 +675,9 @@ function run_stat(){
     lastRealTime= Date.now();
 
     objCount_display.updateDisplay();
-    rainOutput_display.updateDisplay();
-    windOutput_display.updateDisplay();
+    rainVolume_display.updateDisplay();
+    rainTF_display.updateDisplay();
+    windSpeed_display.updateDisplay();
     fps_display.updateDisplay();
 }
 

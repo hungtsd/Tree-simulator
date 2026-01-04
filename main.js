@@ -124,7 +124,7 @@ class TreeNode{
         this.x= this.parent.x + Math.round(this.length*Math.cos(Helper.to_rad(this.abs_angle)));
         this.y= this.parent.y - Math.round(this.length*Math.sin(Helper.to_rad(this.abs_angle)));
 
-        let _waterFlow= Math.ceil(this.waterAmount/1000);
+        let _waterFlow= Math.ceil(this.waterAmount/10);
         this.waterAmount-= _waterFlow;
         this.parent.waterAmount+= _waterFlow;
     }
@@ -546,9 +546,10 @@ class statDisplay{
 }
 
 let objCount_display= new statDisplay(50,100,100,'Object count: ','', new predictVal);
-let rainVolume_display= new statDisplay(50,350,100,'Lượng mưa: ',' ml/s', new avgVal, 2);
-let rainTF_display= new statDisplay(50,450,100, 'Tỉ lệ nước bị chắn: ', '%', new avgVal, 1);
-let windSpeed_display= new statDisplay(50,550,100,'Tốc độ gió: ','km/h', new avgVal, 2);
+let rainVolume_display= new statDisplay(50,300,80,'Lượng mưa: ',' ml/s', new avgVal, 2);
+let rainRF_display= new statDisplay(50,390,80,'Lượng nước ở gốc: ',' ml/s/cây', new avgVal, 1);
+let rainTF_display= new statDisplay(50,480,80, 'Tỉ lệ nước bị chắn: ', '%', new avgVal, 1);
+let windSpeed_display= new statDisplay(50,570,80,'Tốc độ gió: ','km/h', new avgVal, 2);
 let fps_display= new statDisplay(50,700,100,'',' FPS', new predictVal(0.1, 60), 1);
 let frameCount= 0;
 
@@ -634,14 +635,18 @@ async function run(){
             _obj_count+= tree.nodeList.length;
         objCount_display.updateValue(_obj_count);
 
+        let rainRootFlow= 0;
+
         for (const tree of TreeList){
-            rainAbsorbed+= tree.waterAmount;
+            rainRootFlow+= tree.waterAmount;
             tree.waterAmount= 0;
         }
 
         if (rainCount==0) rainTF_display.updateValue(0);
         else rainTF_display.updateValue((rainCount-rainHitCount)/rainCount*100);
-        rainVolume_display.updateValue(rainAbsorbed*60);
+        if (TreeList.length==0) rainRF_display.updateValue(0);
+        else rainRF_display.updateValue(rainRootFlow/TreeList.length*60);
+        rainVolume_display.updateValue((rainAbsorbed+rainRootFlow)*60);
         rainAbsorbed= 0;
         rainCount=0;
         rainHitCount=0;
@@ -653,6 +658,7 @@ async function run(){
 
         //objCount_display.draw();
         rainVolume_display.draw();
+        rainRF_display.draw();
         rainTF_display.draw();
         windSpeed_display.draw();
         //fps_display.draw();
@@ -676,6 +682,7 @@ function run_stat(){
 
     objCount_display.updateDisplay();
     rainVolume_display.updateDisplay();
+    rainRF_display.updateDisplay();
     rainTF_display.updateDisplay();
     windSpeed_display.updateDisplay();
     fps_display.updateDisplay();

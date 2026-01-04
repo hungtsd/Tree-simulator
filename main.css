@@ -63,7 +63,8 @@ input:focus{
     width: 70vw;
     margin-top: 0.5vw;
     margin-left: 3vw;
-    padding: 1vw;
+    padding-left: 8.5vw;
+    padding-right: 8.5vw;
     float: left;
 
     display: flex;
@@ -85,7 +86,11 @@ input:focus{
     gap: 1vw;
 }
 
-#tree_div > .div_title, #density_div > .div_title{
+#tree_div > .div_title{
+    transform: translate(-7.5vw, -3.5vw);
+}
+
+#density_div > .div_title{
     transform: translate(0vw, -3.5vw);
 }
 
